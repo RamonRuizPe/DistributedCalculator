@@ -1,0 +1,15 @@
+.root{
+    -fx-background-color: #222;
+    -fx-background-radius: 28;
+}
+
+.mainPane{
+    -fx-background-color: linear-gradient(#c6df43,#e40084);
+    -fx-background-radius: 15 15 25 25;
+    /*-fx-background-color: linear-gradient(#FF7F58,#6A5ACD);*/
+}
+
+.fade{
+-fx-background-color:#80808025;
+-fx-background-radius: 15;
+}
