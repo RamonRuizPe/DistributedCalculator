@@ -1,0 +1,9 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="sub.jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/sub_jar</output-path>
+    <root id="archive" name="Socket_testing.jar">
+      <element id="module-output" name="Socket_testing" />
+      <element id="library" level="project" name="jfxswt" />
+    </root>
+  </artifact>
+</component>

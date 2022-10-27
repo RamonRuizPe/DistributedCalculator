@@ -1,36 +1,113 @@
 import java.io.*;
 import java.net.*;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 
 public class Nodo {
-    private static List<Socket> clientSockets = new ArrayList<Socket>();
-
-    static synchronized void broadcast(Socket socketSender, String message) throws IOException{
-        Socket socket;
-        PrintWriter p;
-        for (int i = 0; i < clientSockets.size(); i++){
-            socket = clientSockets.get(i);
-                if (socket != socketSender){
-                    p = new PrintWriter(socket.getOutputStream(), true);
-                    p.println(message);
+    static List<Integer> cellPorts = new ArrayList<>();
+    static List<Integer> nodePorts = new ArrayList<>();
+    //static List<Integer> usedPorts = new ArrayList<>();
+    static int actual_port = 4000;
+    static ServerSocket serverSocket = null;
+    static synchronized void broadcast(int senderPort, int nodePort, String message) throws IOException{
+        String toSend = message.replaceFirst(message.split(",")[0],String.valueOf(nodePort));
+        System.out.println(message);
+        if (nodePorts.contains(senderPort)){
+            System.out.println("Node communication");
+            cellPorts.forEach((port) -> {
+                if (senderPort != port){
+                    try (Socket socket = new Socket("127.0.0.1", port)){
+                        PrintWriter p = new PrintWriter(socket.getOutputStream(), true);
+                        p.println(toSend);
+                    }catch (Exception e){
+                        e.printStackTrace();
+                    }
                 }
+            });
+        }else if (cellPorts.contains(senderPort)){
+            System.out.println("Cell communication");
+            cellPorts.forEach((port) -> {
+                if (senderPort != port){
+                    try (Socket socket = new Socket("127.0.0.1", port)){
+                        PrintWriter p = new PrintWriter(socket.getOutputStream(), true);
+                        p.println(toSend);
+                    }catch (Exception e){
+                        e.printStackTrace();
+                    }
+                }
+            });
+            nodePorts.forEach((port) -> {
+                if (senderPort != port){
+                    try (Socket socket = new Socket("127.0.0.1", port)){
+                        PrintWriter p = new PrintWriter(socket.getOutputStream(), true);
+                        p.println(toSend);
+                    }catch (Exception e){
+                        e.printStackTrace();
+                    }
+                }
+            });
         }
     }
 
-    static synchronized void remove(Socket s){
-        clientSockets.remove(s);
+    //operations with clientSockets
+    static synchronized void remove_cells(Integer s){
+        cellPorts.remove(s);
+    }
+    static synchronized void add_cells(Integer s){cellPorts.add(s);}
+
+    static synchronized void remove_node(Integer s){nodePorts.remove(s);}
+    static synchronized void add_node(Integer s){nodePorts.add(s);}
+    static synchronized List<Integer> get_cells(){return cellPorts;}
+    static synchronized List<Integer> get_nodes(){return nodePorts;}
+
+
+    static void initial_connection_handler(){
+        while(true){
+            try {
+                serverSocket = new ServerSocket(actual_port);
+                nodePorts.forEach((temp_port) -> {
+                    try{
+                        Socket socket = new Socket("127.0.0.1", temp_port);
+                        OutputStream out = socket.getOutputStream();
+                        PrintWriter text = new PrintWriter(
+                                new OutputStreamWriter(out, StandardCharsets.UTF_8), true
+                        );
+                        final String sent = "Node" + "," + actual_port;
+                        text.println(sent);
+                        socket.close();
+                    }catch(Exception e){
+                        System.out.println(e);
+                    }
+                });
+                break;
+            }catch (Exception e){
+                nodePorts.add(actual_port);
+                actual_port++;
+            }
+
+        }
     }
 
     public static void main(String[] args) throws IOException{
-        int port = Integer.parseInt(args[1]);
-        ServerSocket listener = new ServerSocket(port);
-        System.out.println("Running port in " + port);
+        //int port = Integer.parseInt(args[1]);
+        //Initialize node connections
+        initial_connection_handler();
+
+        System.out.println("Running port in " + actual_port);
         while(true){
-            Socket client = listener.accept();
-            new ClientHandler(client, port).start();
-            System.out.println("Connection at port "+ client.getPort());
-            clientSockets.add(client);
+            try{
+                Socket client = serverSocket.accept();
+                System.out.println("Connection at local port "+ client.getLocalPort());
+                new ClientHandler(client).start();
+                //clientSockets.add(client);
+                //nodeSockets.add(client);
+
+            }catch (IOException e){
+                System.out.println(e);
+            }
+
         }
     }
 }
@@ -39,11 +116,10 @@ class ClientHandler extends Thread{
     private BufferedReader in;
     private PrintWriter out;
     private Socket toClient;
-    private int port;
     private String last_message = "";
-    ClientHandler(Socket socket, int port){
+
+    ClientHandler(Socket socket){
         toClient = socket;
-        this.port = port;
     }
 
     public void run(){
@@ -52,22 +128,26 @@ class ClientHandler extends Thread{
             //String port = in.readLine().split("|")[0];
 
             out = new PrintWriter(toClient.getOutputStream(), true);
-            out.println("Connection is successful");
-            while (true){
-                String line = in.readLine();
+            //System.out.println("Connection is successful");
+            //out.println("Welcome");
+            String line = in.readLine();
+            //Check if connection is node
+            if (line.startsWith("Node")){
+                Nodo.add_node(Integer.parseInt(line.split(",")[1]));
                 System.out.println(line);
-                if (!line.equals(last_message)){
-                    if(line.equals("end")){
-                        Nodo.broadcast(toClient,"Disconnected");
-                        break;
-                    }
-                    last_message = line;
-                    Nodo.broadcast(toClient,line);
-                }
-
+                System.out.println("Connected cells: "+Nodo.get_cells());
+                System.out.println("Connected nodes: "+Nodo.get_nodes());
             }
-            Nodo.remove(toClient);
-            toClient.close();
+            else if (line.startsWith("Cell")){
+                Nodo.add_cells(Integer.parseInt(line.split(",")[1]));
+                System.out.println(line);
+                System.out.println("Connected cells: "+Nodo.get_cells());
+                System.out.println("Connected nodes: "+Nodo.get_nodes());
+            }else{
+                int senderPort = Integer.parseInt(line.split(",")[0]);
+                System.out.println("Communicating from port "+senderPort);
+                Nodo.broadcast(senderPort,toClient.getLocalPort(),line);
+            }
         }catch (Exception e) {
             e.printStackTrace();
         }

@@ -13,3 +13,8 @@
 -fx-background-color:#80808025;
 -fx-background-radius: 15;
 }
+
+.framed.text-area .scroll-pane .viewport,
+.framed.text-area .content {
+    -fx-background-color: null;
+}
