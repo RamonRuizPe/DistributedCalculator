@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="mult:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/mult_jar</output-path>
+    <root id="archive" name="mult.jar">
+      <element id="module-output" name="mult" />
+    </root>
+  </artifact>
+</component>

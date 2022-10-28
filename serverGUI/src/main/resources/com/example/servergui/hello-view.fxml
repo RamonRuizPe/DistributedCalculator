@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.text.Font?>
+
+
+<Pane fx:id="mainPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="447.0" prefWidth="397.0" xmlns="http://javafx.com/javafx/18" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.servergui.HelloController">
+   <children>
+      <Label fx:id="lblPort" layoutX="14.0" layoutY="14.0" text="Server connected in:">
+         <font>
+            <Font name="Century Gothic" size="24.0" />
+         </font>
+      </Label>
+      <TextArea fx:id="txtAreaHist" layoutX="16.0" layoutY="105.0" prefHeight="274.0" prefWidth="366.0" />
+      <Label fx:id="lblUUID" layoutX="16.0" layoutY="51.0" text="UUID:" />
+      <Button fx:id="btnClear" layoutX="319.0" layoutY="408.0" mnemonicParsing="false" onMouseClicked="#onBtnClick" onMousePressed="#onBtnClick" text="Clear log" />
+      <Label layoutX="144.0" layoutY="82.0" text="Server streaming log" />
+   </children>
+</Pane>

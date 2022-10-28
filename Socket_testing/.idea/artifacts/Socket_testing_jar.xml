@@ -1,8 +1,0 @@
-<component name="ArtifactManager">
-  <artifact type="jar" name="Socket_testing:jar">
-    <output-path>$PROJECT_DIR$/out/artifacts/Socket_testing_jar</output-path>
-    <root id="archive" name="Socket_testing.jar">
-      <element id="module-output" name="Socket_testing" />
-    </root>
-  </artifact>
-</component>
