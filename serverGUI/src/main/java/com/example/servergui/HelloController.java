@@ -15,6 +15,10 @@ import java.net.Socket;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.Random;
 import java.util.UUID;
@@ -63,7 +67,7 @@ public class HelloController {
                         }
                     }
                 }
-                System.out.println("Running port in "+actualPort);
+                System.out.println("Running server in "+actualPort);
                 break;
             }catch (Exception e){
                 actualPort++;
@@ -74,7 +78,7 @@ public class HelloController {
 
     static void send_message_toPort(String message){
         try(Socket socket = new Socket("127.0.0.1", nodeConnectionPort)){
-            System.out.println("Sending messages" + message);
+            System.out.println("Sending messages " + message);
             PrintWriter p = new PrintWriter(socket.getOutputStream(), true);
             p.println(message);
         } catch (IOException e) {
@@ -92,6 +96,11 @@ public class HelloController {
             stage.setY(mouseEvent.getScreenY()-y);
         });
         initial_connection_handler();
+        File portDir = new File("C:\\Users\\benra\\Documents\\7mo_semestre\\calculadora\\microservices\\"+actualPort);
+        if(!(portDir.exists())){
+            portDir.mkdir();
+        }
+        portDir.deleteOnExit();
         cellIdentifier = UUID.randomUUID();
         lblPort.setText(lblPort.getText()+" "+ actualPort);
         lblUUID.setText(lblUUID.getText()+" "+ cellIdentifier);
@@ -105,7 +114,9 @@ public class HelloController {
         public void run() {
             String server_answer;
             String operationRequested = "";
-
+            int maxNeeded = 0;
+            int tries = 0;
+            boolean duplicating = true;
             while(true){
                 try{
                     Socket client = serverSocket.accept();
@@ -120,10 +131,84 @@ public class HelloController {
                     String message = String.valueOf(actualPort) + "," + cellIdentifier + ",";
                     server_answer = reader.readLine();
                     String finalServer_answer = server_answer;
-                    Platform.runLater(()->txtAreaHist.appendText(finalServer_answer));
+                    Platform.runLater(()->txtAreaHist.appendText(finalServer_answer + "\n"));
                     //System.out.println(server_answer);
                     String[] messageItems = server_answer.split(",");
+
+                    //Inyecting service
+                    if (messageItems.length == 3 && messageItems[1].equals("manager")){
+                        String inyectService = messageItems[1];
+
+                        Path pathSource = Path.of(messageItems[2]);
+                        Path pathTarget = (Path) Paths.get("/Users",
+                                "benra", "Documents", "7mo_semestre","calculadora","microservices", String.valueOf(actualPort), messageItems[2].split("\\\\")[7]);
+                        Files.copy(pathSource,pathTarget, StandardCopyOption.REPLACE_EXISTING);
+
+                        //The structure of path is C:\Users\benra\Documents\7mo_semestre\calculadora\manager\<service to inyect>
+                        Platform.runLater(()->txtAreaHist.appendText(inyectService+" inyecting service " + messageItems[2].split("\\\\")[7]));
+                        continue;
+                    }
                     message += messageItems[1] + "," + messageItems[2] + ",";
+
+
+                    //duplicate request
+                    //Cheking if UUID belongs to the server
+                    if (messageItems[1].equals(String.valueOf(cellIdentifier))) {
+                        if(Integer.parseInt(messageItems[2]) != maxNeeded){
+                            maxNeeded = Integer.parseInt(messageItems[2]);
+                        }
+                        serverSocket.close();
+                        System.out.println("Try");
+                        if (duplicating) {
+                            duplicating = false;
+                            int tempPort = actualPort + 1;
+                            while(true){
+                                try(ServerSocket tempSocket = new ServerSocket(tempPort)){
+                                    new File("C:\\Users\\benra\\Documents\\7mo_semestre\\calculadora\\microservices\\"+tempPort).mkdir();
+                                    File dir = new File("C:\\Users\\benra\\Documents\\7mo_semestre\\calculadora\\microservices\\"+actualPort);
+                                    File[] dirList = dir.listFiles();
+                                    if(dirList != null){
+                                        for(File microservices : dirList){
+                                            Path pathTarget = (Path) Paths.get("/Users",
+                                                    "benra", "Documents", "7mo_semestre","calculadora","microservices", String.valueOf(tempPort), microservices.getName());
+                                            Path pathSource = (Path) Paths.get("/Users",
+                                                    "benra", "Documents", "7mo_semestre","calculadora","microservices", String.valueOf(actualPort), microservices.getName());
+                                            try{
+                                                System.out.println(
+                                                        "Number of bytes copied: "
+                                                                + Files.copy(pathSource, pathTarget, StandardCopyOption.REPLACE_EXISTING));
+                                            }catch (IOException e){
+                                                e.printStackTrace();
+                                            }
+
+                                        }
+                                    }
+                                    break;
+                                }catch (Exception e){
+                                    tempPort++;
+                                }
+                            }
+                            ProcessBuilder pb = new ProcessBuilder("C:\\Users\\benra\\Desktop\\runServerCell.bat");
+                            try{
+
+                                Process p = pb.start();
+                                //p.waitFor();
+
+                                serverSocket = new ServerSocket(actualPort);
+                                System.out.println("");
+                                if (tries < maxNeeded-1){
+                                    duplicating = true;
+                                    tries++;
+                                }
+
+
+                            }catch (Exception e){
+                                e.printStackTrace();
+                            }
+                        } else {
+                            continue;
+                        }
+                    }
                     server_answer = server_answer.substring(server_answer.indexOf(messageItems[2])+ messageItems[2].length() + 1);
                     if(server_answer.startsWith("1,")){
                         message+="5,";
@@ -147,9 +232,9 @@ public class HelloController {
                         URLClassLoader urlClassLoader;
                         Class<?> mainClass;
                         String finalOperationRequested = operationRequested;
-                        Platform.runLater(()->txtAreaHist.appendText("\n"+"Loading "+ finalOperationRequested +".jar"));
+                        Platform.runLater(()->txtAreaHist.appendText("Loading "+ finalOperationRequested +".jar"+"\n"));
                         //System.out.println("Loading "+operationRequested+".jar");
-                        File file = new File("C:\\Users\\benra\\Documents\\7mo_semestre\\microservices\\"+operationRequested+".jar");
+                        File file = new File("C:\\Users\\benra\\Documents\\7mo_semestre\\calculadora\\microservices\\"+actualPort+"\\"+operationRequested+".jar");
                         mainClass = new URLClassLoader(new URL[] { file.toURI().toURL() }).loadClass(operationRequested);
                         Method method = mainClass.getMethods()[0];
                         Object objInstance = mainClass.getDeclaredConstructor().newInstance();
@@ -159,6 +244,7 @@ public class HelloController {
                         //System.out.println(result);
                         message+=String.valueOf(result);
                         send_message_toPort(message);
+
                         //urlClassLoader = new URLClassLoader(jarFileURL);
                         //System.out.println(urlClassLoader);
                         //mainClass = urlClassLoader.loadClass("sum");

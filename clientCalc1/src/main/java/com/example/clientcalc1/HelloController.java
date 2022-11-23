@@ -55,7 +55,10 @@ public class HelloController {
     static int idxMult = 1;
     static int idxDiv = 1;
 
-    static boolean isReceiving = false;
+    static boolean isReceivingSum = false;
+    static boolean isReceivingSub = false;
+    static boolean isReceivingMult = false;
+    static boolean isReceivingDiv = false;
 
     //Save information about events and receipts
     Hashtable<String, ArrayList<UUID>> sumOperations = new Hashtable<>();
@@ -103,29 +106,44 @@ public class HelloController {
         }
     }
 
-    static void send_message_toPort(String message){
-        try(Socket socket = new Socket("127.0.0.1", nodeConnectionPort)){
-            PrintWriter p = new PrintWriter(socket.getOutputStream(), true);
-            p.println(message);
-        } catch (IOException e) {
+    static void new_connection_handler(String message){
+        while(true){
             for (int i = 0; i < maxConnectionAttempts; i++) {
                 int randomPort = new Random().ints(1,4000, 4005).findFirst().getAsInt();
                 try{
                     Socket socket = new Socket("127.0.0.1", randomPort);
                     //Remember the node port
                     nodeConnectionPort = randomPort;
+                    System.out.println("Connected to port " +nodeConnectionPort);
+                    OutputStream out = socket.getOutputStream();
                     PrintWriter text = new PrintWriter(
-                            new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8), true
+                            new OutputStreamWriter(out, StandardCharsets.UTF_8), true
                     );
+                    final String sent = "Cell" + "," + actualPort;
+                    //Update new node information table
+                    text.println(sent);
+
+                    //Send the message that was meant to be sent
                     text.println(message);
                     socket.close();
                     break;
-                }catch(Exception ex){
+                }catch(Exception e){
                     if (i == (maxConnectionAttempts - 1)){
                         System.out.println("Not available port");
                     }
                 }
             }
+            break;
+        }
+    }
+
+    static void send_message_toPort(String message){
+        try(Socket socket = new Socket("127.0.0.1", nodeConnectionPort)){
+            PrintWriter p = new PrintWriter(socket.getOutputStream(), true);
+            p.println(message);
+        } catch (IOException e) {
+            //Making new attempt
+            new_connection_handler(message);
         }
     }
 
@@ -260,30 +278,70 @@ public class HelloController {
     }
 
     Thread thread = new Thread(new Runnable() {
+        String sumDuplicate;
+        String subDuplicate;
+        String multDuplicate;
+        String divDuplicate;
+        int sumDupMax = 1;
+        int sumTries = 0;
+        int subDupMax = 1;
+        int subTries = 0;
+        int multDupMax = 1;
+        int multTries = 0;
+        int divDupMax = 1;
+        int divTries = 0;
 
         final TimerTask sumSendMessage = new TimerTask() {
             @Override
             public void run() {
-                System.out.println("Sending");
+                //System.out.println("Sending");
                 send_message_toPort(sumQueue.peek());
+                if(sumTries > 3){
+                    String outputDuplicate = actualPort +","+ sumDuplicate + "," + sumDupMax + ",11";
+                    send_message_toPort(outputDuplicate);
+                }else{
+                    sumTries++;
+                }
+
             }
         };
         final TimerTask subSendMessage = new TimerTask() {
             @Override
             public void run() {
                 send_message_toPort(subQueue.peek());
+                if(subTries > 3){
+                    String outputDuplicate = actualPort +","+ subDuplicate + "," + subDupMax + ",11";
+                    send_message_toPort(outputDuplicate);
+                }else{
+                    subTries++;
+                }
+
             }
         };
         final TimerTask multSendMessage = new TimerTask() {
             @Override
             public void run() {
                 send_message_toPort(multQueue.peek());
+                if(multTries > 3){
+                    String outputDuplicate = actualPort +","+ multDuplicate + "," + multDupMax + ",11";
+                    send_message_toPort(outputDuplicate);
+                }else{
+                    multTries++;
+                }
+
             }
         };
         final TimerTask divSendMessage = new TimerTask() {
             @Override
             public void run() {
                 send_message_toPort(divQueue.peek());
+                if(divTries > 3){
+                    String outputDuplicate = actualPort +","+ divDuplicate + "," + divDupMax + ",11";
+                    send_message_toPort(outputDuplicate);
+                }else{
+                    divTries++;
+                }
+
             }
         };
         Timer sumTimer = new Timer();
@@ -323,7 +381,9 @@ public class HelloController {
                                     sumOperations.get(nodeItems[3]).add(UUID.fromString(nodeItems[1]));
                                     if(sumOperations.get(nodeItems[3]).size() < minSum){
                                         //Check how many receipts does this eventID has
-                                        if (isReceiving){sumTimer = new Timer();}
+                                        if (isReceivingSum){sumTimer = new Timer();}
+                                        sumDuplicate = String.valueOf(sumOperations.values().stream().findFirst().get().get(0));
+                                        sumDupMax = minSum - sumOperations.get(nodeItems[3]).size();
                                         sumTimer.schedule(sumSendMessage,2000, 2500);
                                         continue;
                                     }else{
@@ -332,12 +392,14 @@ public class HelloController {
                                             sumOperations.remove(nodeItems[3]);
                                             System.out.println(sumOperations);
                                         });
+                                        //Cleaning the sending operation and restoring the queue.
                                         sumTimer.cancel();
                                         sumQueue.remove();
                                         idxSum++;
+                                        sumTries++;
                                         result = server_answer.split(",")[1];
                                         System.out.println(result);
-                                        isReceiving = true;
+                                        isReceivingSum = true;
                                     }
 
                                 }
@@ -347,7 +409,9 @@ public class HelloController {
                                 if(!subOperations.get(nodeItems[3]).contains(UUID.fromString(nodeItems[1]))){
                                     subOperations.get(nodeItems[3]).add(UUID.fromString(nodeItems[1]));
                                     if(subOperations.get(nodeItems[3]).size() < minSub){
-                                        if (isReceiving){subTimer = new Timer();}
+                                        if (isReceivingSub){subTimer = new Timer();}
+                                        subDuplicate = String.valueOf(subOperations.values().stream().findFirst().get().get(0));
+                                        subDupMax = minSub - subOperations.get(nodeItems[3]).size();
                                         subTimer.schedule(subSendMessage,2000, 2500);
                                         continue;
                                     }else{
@@ -356,13 +420,15 @@ public class HelloController {
                                             subOperations.remove(nodeItems[3]);
                                             System.out.println(subOperations);
                                         });
+                                        //Cleaning the sending operation and restoring the queue.
                                         subTimer.cancel();
                                         subQueue.remove();
                                         subOperations.remove(nodeItems[3]);
                                         idxSub++;
+                                        subTries++;
                                         result = server_answer.split(",")[1];
                                         System.out.println(result);
-                                        isReceiving = true;
+                                        isReceivingSub = true;
                                     }
                                 }
                             }
@@ -371,7 +437,9 @@ public class HelloController {
                                 if(!multOperations.get(nodeItems[3]).contains(UUID.fromString(nodeItems[1]))){
                                     multOperations.get(nodeItems[3]).add(UUID.fromString(nodeItems[1]));
                                     if(multOperations.get(nodeItems[3]).size() < minMult){
-                                        if (isReceiving){multTimer = new Timer();}
+                                        if (isReceivingMult){multTimer = new Timer(); System.out.println("Initializing timer");}
+                                        multDuplicate = String.valueOf(multOperations.values().stream().findFirst().get().get(0));
+                                        multDupMax = minMult - multOperations.get(nodeItems[3]).size();
                                         multTimer.schedule(multSendMessage,2000, 2500);
                                         continue;
                                     }else{
@@ -380,12 +448,15 @@ public class HelloController {
                                             multOperations.remove(nodeItems[3]);
                                             System.out.println(multOperations);
                                         });
+                                        //Cleaning the sending operation and restoring the queue.
                                         multTimer.cancel();
+                                        System.out.println("Timer was cancelled");
                                         multQueue.remove();
                                         multOperations.remove(nodeItems[3]);
                                         idxMult++;
+                                        multTries++;
                                         result = server_answer.split(",")[1];
-                                        isReceiving = true;
+                                        isReceivingMult = true;
                                     }
                                 }
                             }
@@ -394,7 +465,9 @@ public class HelloController {
                                 if(!divOperations.get(nodeItems[3]).contains(UUID.fromString(nodeItems[1]))){
                                     divOperations.get(nodeItems[3]).add(UUID.fromString(nodeItems[1]));
                                     if(divOperations.get(nodeItems[3]).size() < minDiv){
-                                        if (isReceiving){divTimer = new Timer();}
+                                        if (isReceivingDiv){divTimer = new Timer(); System.out.println("Initializing timer");}
+                                        divDuplicate = String.valueOf(divOperations.values().stream().findFirst().get().get(0));
+                                        divDupMax = minDiv - divOperations.get(nodeItems[3]).size();
                                         divTimer.schedule(divSendMessage,2000, 2500);
                                         continue;
                                     }else{
@@ -403,13 +476,15 @@ public class HelloController {
                                             divOperations.remove(nodeItems[3]);
                                             System.out.println(divOperations);
                                         });
+                                        //Cleaning the sending operation and restoring the queue.
                                         divTimer.cancel();
                                         divQueue.remove();
                                         //divOperations.remove(nodeItems[3]);
                                         idxDiv++;
+                                        divTries++;
                                         result = server_answer.split(",")[1];
                                         System.out.println(result);
-                                        isReceiving = true;
+                                        isReceivingDiv = true;
                                     }
                                 }
                             }

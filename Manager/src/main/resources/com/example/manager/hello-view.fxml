@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.text.Font?>
+
+<Pane fx:id="mainPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="218.0" prefWidth="384.0" xmlns="http://javafx.com/javafx/18" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.manager.HelloController">
+   <children>
+      <ListView fx:id="lvOperations" layoutX="14.0" layoutY="39.0" prefHeight="164.0" prefWidth="143.0" />
+      <Label layoutX="14.0" layoutY="14.0" text="Operaciones disponibles">
+         <font>
+            <Font name="Century Gothic" size="12.0" />
+         </font>
+      </Label>
+      <Button fx:id="btnSend" layoutX="322.0" layoutY="179.0" mnemonicParsing="false" onMouseClicked="#onBtnSendClick" onMousePressed="#onBtnSendClick" text="Enviar" />
+      <Button fx:id="btnUpdate" layoutX="173.0" layoutY="179.0" mnemonicParsing="false" text="Actualizar" />
+      <Label layoutX="204.0" layoutY="14.0" text="Servidores conectados">
+         <font>
+            <Font name="Century Gothic" size="12.0" />
+         </font>
+      </Label>
+      <ListView fx:id="lvServers" editable="true" layoutX="173.0" layoutY="39.0" prefHeight="134.0" prefWidth="195.0" />
+   </children>
+</Pane>
