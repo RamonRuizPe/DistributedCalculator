@@ -364,10 +364,18 @@ public class HelloController {
                     BufferedReader reader = new BufferedReader(new InputStreamReader(input));
 
                     server_answer = reader.readLine();
-                    if(!server_answer.split(",")[2].equals(String.valueOf(cellIdentifier))){
+                    //System.out.println(server_answer);
+                    String[] nodeItems = server_answer.split(",");
+                    //System.out.println(Arrays.toString(nodeItems));
+                    if(server_answer.split(",")[1].equals("manager") && nodeItems.length == 6){
+                        minSum = Integer.parseInt(nodeItems[2]); //sumAck update
+                        minSub = Integer.parseInt(nodeItems[3]); //subAck update
+                        minMult = Integer.parseInt(nodeItems[4]); //divAck update
+                        minDiv = Integer.parseInt(nodeItems[5]); //multAck update
+                        System.out.println(minSum + " " + minSub + " " + minMult + " " + minDiv);
+                    } else if (!server_answer.split(",")[2].equals(String.valueOf(cellIdentifier))) {
                         continue;
                     }
-                    String[] nodeItems = server_answer.split(",");
                     server_answer = server_answer.replace(server_answer.split(",")[0]+",","");
                     server_answer = server_answer.substring(server_answer.indexOf(nodeItems[3])+nodeItems[3].length()+1);
                     System.out.println(server_answer);
@@ -381,7 +389,7 @@ public class HelloController {
                                     sumOperations.get(nodeItems[3]).add(UUID.fromString(nodeItems[1]));
                                     if(sumOperations.get(nodeItems[3]).size() < minSum){
                                         //Check how many receipts does this eventID has
-                                        if (isReceivingSum){sumTimer = new Timer();}
+                                        if (isReceivingSum){sumTimer = new Timer(); isReceivingSum=false;}
                                         sumDuplicate = String.valueOf(sumOperations.values().stream().findFirst().get().get(0));
                                         sumDupMax = minSum - sumOperations.get(nodeItems[3]).size();
                                         sumTimer.schedule(sumSendMessage,2000, 2500);
@@ -409,7 +417,7 @@ public class HelloController {
                                 if(!subOperations.get(nodeItems[3]).contains(UUID.fromString(nodeItems[1]))){
                                     subOperations.get(nodeItems[3]).add(UUID.fromString(nodeItems[1]));
                                     if(subOperations.get(nodeItems[3]).size() < minSub){
-                                        if (isReceivingSub){subTimer = new Timer();}
+                                        if (isReceivingSub){subTimer = new Timer(); isReceivingSub=false;}
                                         subDuplicate = String.valueOf(subOperations.values().stream().findFirst().get().get(0));
                                         subDupMax = minSub - subOperations.get(nodeItems[3]).size();
                                         subTimer.schedule(subSendMessage,2000, 2500);
@@ -437,7 +445,7 @@ public class HelloController {
                                 if(!multOperations.get(nodeItems[3]).contains(UUID.fromString(nodeItems[1]))){
                                     multOperations.get(nodeItems[3]).add(UUID.fromString(nodeItems[1]));
                                     if(multOperations.get(nodeItems[3]).size() < minMult){
-                                        if (isReceivingMult){multTimer = new Timer(); System.out.println("Initializing timer");}
+                                        if (isReceivingMult){multTimer = new Timer(); System.out.println("Initializing timer"); isReceivingMult=false;}
                                         multDuplicate = String.valueOf(multOperations.values().stream().findFirst().get().get(0));
                                         multDupMax = minMult - multOperations.get(nodeItems[3]).size();
                                         multTimer.schedule(multSendMessage,2000, 2500);
@@ -465,7 +473,7 @@ public class HelloController {
                                 if(!divOperations.get(nodeItems[3]).contains(UUID.fromString(nodeItems[1]))){
                                     divOperations.get(nodeItems[3]).add(UUID.fromString(nodeItems[1]));
                                     if(divOperations.get(nodeItems[3]).size() < minDiv){
-                                        if (isReceivingDiv){divTimer = new Timer(); System.out.println("Initializing timer");}
+                                        if (isReceivingDiv){divTimer = new Timer(); System.out.println("Initializing timer"); isReceivingDiv=false;}
                                         divDuplicate = String.valueOf(divOperations.values().stream().findFirst().get().get(0));
                                         divDupMax = minDiv - divOperations.get(nodeItems[3]).size();
                                         divTimer.schedule(divSendMessage,2000, 2500);

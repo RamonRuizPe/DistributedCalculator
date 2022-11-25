@@ -19,9 +19,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.Arrays;
-import java.util.Random;
-import java.util.UUID;
+import java.util.*;
 
 public class HelloController {
     @FXML private Pane mainPane;
@@ -37,6 +35,8 @@ public class HelloController {
     static ServerSocket serverSocket = null;
     static int nodeConnectionPort;
     static UUID cellIdentifier = null;
+
+    final Timer checkConnTimer = new Timer();
 
     @FXML
     protected void onBtnClick() {
@@ -76,11 +76,49 @@ public class HelloController {
         }
     }
 
+    static void new_connection_handler(){
+        while(true){
+            for (int i = 0; i < maxConnectionAttempts; i++) {
+                int randomPort = new Random().ints(1,4000, 4005).findFirst().getAsInt();
+                try{
+                    Socket socket = new Socket("127.0.0.1", randomPort);
+                    //Remember the node port
+                    nodeConnectionPort = randomPort;
+                    System.out.println("Connected to port " +nodeConnectionPort);
+                    OutputStream out = socket.getOutputStream();
+                    PrintWriter text = new PrintWriter(
+                            new OutputStreamWriter(out, StandardCharsets.UTF_8), true
+                    );
+                    final String sent = "Cell" + "," + actualPort;
+                    //Update new node information table
+                    text.println(sent);
+
+                    socket.close();
+                    break;
+                }catch(Exception e){
+                    if (i == (maxConnectionAttempts - 1)){
+                        System.out.println("Not available port");
+                    }
+                }
+            }
+            break;
+        }
+    }
+
     static void send_message_toPort(String message){
         try(Socket socket = new Socket("127.0.0.1", nodeConnectionPort)){
             System.out.println("Sending messages " + message);
             PrintWriter p = new PrintWriter(socket.getOutputStream(), true);
             p.println(message);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void closeApp(){
+        try {
+            serverSocket.close();
+            checkConnTimer.cancel();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -110,6 +148,19 @@ public class HelloController {
     }
 
     Thread thread = new Thread(new Runnable() {
+
+        final TimerTask checkConn = new TimerTask() {
+            @Override
+            public void run() {
+                try(Socket socket = new Socket("127.0.0.1", nodeConnectionPort)){
+                    System.out.println("Verifying connection");
+                } catch (IOException e) {
+                    new_connection_handler();
+                }
+            }
+        };
+
+
         @Override
         public void run() {
             String server_answer;
@@ -117,6 +168,7 @@ public class HelloController {
             int maxNeeded = 0;
             int tries = 0;
             boolean duplicating = true;
+            checkConnTimer.schedule(checkConn, 3000, 5000);
             while(true){
                 try{
                     Socket client = serverSocket.accept();
@@ -147,6 +199,8 @@ public class HelloController {
                         //The structure of path is C:\Users\benra\Documents\7mo_semestre\calculadora\manager\<service to inyect>
                         Platform.runLater(()->txtAreaHist.appendText(inyectService+" inyecting service " + messageItems[2].split("\\\\")[7]));
                         continue;
+                    } else if (messageItems.length == 6 && messageItems[1].equals("manager")) {
+                        continue;
                     }
                     message += messageItems[1] + "," + messageItems[2] + ",";
 
@@ -156,8 +210,9 @@ public class HelloController {
                     if (messageItems[1].equals(String.valueOf(cellIdentifier))) {
                         if(Integer.parseInt(messageItems[2]) != maxNeeded){
                             maxNeeded = Integer.parseInt(messageItems[2]);
+                            System.out.println(maxNeeded);
                         }
-                        serverSocket.close();
+                        //serverSocket.close();
                         System.out.println("Try");
                         if (duplicating) {
                             duplicating = false;
@@ -194,9 +249,9 @@ public class HelloController {
                                 Process p = pb.start();
                                 //p.waitFor();
 
-                                serverSocket = new ServerSocket(actualPort);
+                                //serverSocket = new ServerSocket(actualPort);
                                 System.out.println("");
-                                if (tries < maxNeeded-1){
+                                if (tries < maxNeeded){
                                     duplicating = true;
                                     tries++;
                                 }

@@ -165,22 +165,24 @@ class ClientHandler extends Thread{
             BufferedReader in = new BufferedReader(new InputStreamReader(toClient.getInputStream()));
             String line = in.readLine();
             //Check if connection is node
-            if (line.startsWith("Node")){
-                HelloController.add_node(Integer.parseInt(line.split(",")[1]));
-                Platform.runLater(()-> txtAreaHist.setText("Connected cells: "+HelloController.get_cells() + "\n" + "Connected nodes: "+HelloController.get_nodes() + "\n"));
-                System.out.println("Connected cells: "+HelloController.get_cells());
-                System.out.println("Connected nodes: "+HelloController.get_nodes());
-            }
-            else if (line.startsWith("Cell")){
-                HelloController.add_cells(Integer.parseInt(line.split(",")[1]));
-                Platform.runLater(()-> txtAreaHist.setText("Connected cells: "+HelloController.get_cells() + "\n" + "Connected nodes: "+HelloController.get_nodes() + "\n"));
-                System.out.println("Connected cells: "+HelloController.get_cells());
-                System.out.println("Connected nodes: "+HelloController.get_nodes());
-            }else{
-                int senderPort = Integer.parseInt(line.split(",")[0]);
-                Platform.runLater(()->txtAreaHist.appendText("Communicating from port: "+senderPort + "\n" + "From cell: "+ line.split(",")[1] + "\n\n"));
-                //System.out.println("Communicating from port "+senderPort);
-                HelloController.broadcast(senderPort,toClient.getLocalPort(),line);
+            if(line != null){
+                if (line.startsWith("Node")){
+                    HelloController.add_node(Integer.parseInt(line.split(",")[1]));
+                    Platform.runLater(()-> txtAreaHist.setText("Connected cells: "+HelloController.get_cells() + "\n" + "Connected nodes: "+HelloController.get_nodes() + "\n"));
+                    System.out.println("Connected cells: "+HelloController.get_cells());
+                    System.out.println("Connected nodes: "+HelloController.get_nodes());
+                }
+                else if (line.startsWith("Cell")){
+                    HelloController.add_cells(Integer.parseInt(line.split(",")[1]));
+                    Platform.runLater(()-> txtAreaHist.setText("Connected cells: "+HelloController.get_cells() + "\n" + "Connected nodes: "+HelloController.get_nodes() + "\n"));
+                    System.out.println("Connected cells: "+HelloController.get_cells());
+                    System.out.println("Connected nodes: "+HelloController.get_nodes());
+                }else{
+                    int senderPort = Integer.parseInt(line.split(",")[0]);
+                    Platform.runLater(()->txtAreaHist.appendText("Communicating from port: "+senderPort + "\n" + "From cell: "+ line.split(",")[1] + "\n\n"));
+                    //System.out.println("Communicating from port "+senderPort);
+                    HelloController.broadcast(senderPort,toClient.getLocalPort(),line);
+                }
             }
         }catch (Exception e) {
             e.printStackTrace();

@@ -21,6 +21,7 @@ public class HelloController {
     @FXML private ListView<String> lvOperations;
     @FXML private ListView<String> lvServers;
     @FXML private Button btnSend, btnUpdate;
+    @FXML private Spinner spSum, spSub, spMult, spDiv;
     File dirManager = new File("C:\\Users\\benra\\Documents\\7mo_semestre\\calculadora\\manager");
     File dirServer = new File("C:\\Users\\benra\\Documents\\7mo_semestre\\calculadora\\microservices");
     File[] dirList;
@@ -147,6 +148,16 @@ public class HelloController {
         lvServers.setItems(servers);
         lvServers.setSelectionModel(new NoSelectionModel<String>());
         lvServers.setFocusTraversable(false);
+    }
+
+    @FXML protected void onBtnSendAck(){
+        int sumAck = (int) spSum.getValue();
+        int subAck = (int) spSub.getValue();
+        int multAck = (int) spMult.getValue();
+        int divAck = (int) spDiv.getValue();
+        String message = actualPort + ",manager," + sumAck + "," + subAck + "," + multAck + "," + divAck;
+        System.out.println(message);
+        send_message_toPort(message);
     }
 
     public static class NoSelectionModel<T> extends MultipleSelectionModel<T> {
